@@ -23,8 +23,8 @@ DEFAULT_DISTAL_DOWNSTREAM = 0  # No downstream search
 DEFAULT_DISTAL_UPSTREAM = 500_000_000  # To the end of the chromosome
 DEFAULT_DISTAL_WINDOW_BASE = 50_000  # 50 Kb
 
-DTYPE = torch.float32
-DEFAULT_FLOAT_FORMAT = '%.16f'
+DTYPE = torch.float64
+DEFAULT_FLOAT_FORMAT = '%.32f'
 
 
 def get_device(*, logger: Logger = Logger()) -> torch.device:
