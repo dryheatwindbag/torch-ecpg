@@ -142,6 +142,19 @@ You may want to include only certain regression results. There are two ways of f
 
 P-value filtration filters results after calculating the regression, and it saves output time. Region filtration filters the input before the regression results are computed, and it saves both output time and computation time.
 
+## Linear Mixed Model (LMM) Analysis
+
+`tecpg` also supports linear mixed model (LMM) analysis using the `lmm_pytorch` command. This command is similar to the `mlr` command, but it fits a linear mixed model instead of a multiple linear regression. The LMM can be used to account for population structure or other sources of correlation between samples.
+
+The `lmm_pytorch` command has the same region filtration and chunking options as the `mlr` command.
+
+Example:
+```bash
+tecpg run lmm_pytorch --cis --chunk-size 1000
+```
+
+**Note:** The LMM analysis is more computationally intensive than the MLR analysis. It is also not currently GPU-accelerated, so it may be significantly slower than the MLR analysis.
+
 ## MLR approximate p-values
 
 The p-values returned by `tecpg run mlr` are approximations using the normal distribution CDF. This approximation is more accurate for larger degrees of freedom. As the number of degrees of freedom approaches $+\infty$, the CDF of the normal distribution and the Student's T distribution approach. The approximation is done because pytorch does not support the Student CDF and does not have the needed funtions to implement it efficiently.

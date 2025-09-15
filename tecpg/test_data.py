@@ -2,7 +2,8 @@ import math
 import random
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import pandas
+import numpy as np
+import pandas as pd
 
 
 def randrange(
@@ -40,7 +41,7 @@ def generate_codes(
 
 def generate_dataframe(
     column_names: List[str], row_names: List[str], value_gen: Callable[[], Any]
-) -> pandas.DataFrame:
+) -> pd.DataFrame:
     """
     Generates a pandas dataframe with columns dictated by column_names
     and rows dictated by row_names. The values in this dataframe are
@@ -48,7 +49,7 @@ def generate_dataframe(
     """
     n = len(row_names)
     data = {column: [value_gen() for _ in range(n)] for column in column_names}
-    return pandas.DataFrame(
+    return pd.DataFrame(
         data,
         row_names,
     )
@@ -58,7 +59,7 @@ def generate_from_template(
     row_names: List[str],
     template: Dict[str, Callable[[], Any]],
     annotation: bool = False,
-) -> pandas.DataFrame:
+) -> pd.DataFrame:
     """
     Generates the templated dataframe given the row_names, a list of
     person ids, and covariate_template. The template is a dictionary
@@ -71,13 +72,13 @@ def generate_from_template(
             column: [value_gen(i) for i in range(n)]
             for column, value_gen in template.items()
         }
-        return pandas.DataFrame(data)
+        return pd.DataFrame(data)
     else:
         data = {
             column: [value_gen() for _ in range(n)]
             for column, value_gen in template.items()
         }
-        return pandas.DataFrame(data, row_names)
+        return pd.DataFrame(data, row_names)
 
 
 def generate_data(
@@ -87,16 +88,16 @@ def generate_data(
     annotation: bool = False,
 ) -> (
     Tuple[
-        pandas.DataFrame,
-        pandas.DataFrame,
-        pandas.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
     ]
     | Tuple[
-        pandas.DataFrame,
-        pandas.DataFrame,
-        pandas.DataFrame,
-        pandas.DataFrame,
-        pandas.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
+        pd.DataFrame,
     ]
 ):
     """
@@ -142,3 +143,42 @@ def generate_data(
     )
 
     return M, G, C, M_annot, G_annot
+
+
+def generate_lmm_data(
+    n_samples=100,
+    n_meth_rows=100,
+    n_gene_rows=100,
+    n_groups=10,
+    n_covariates=2,
+    beta_true=None,
+    sigma2_e_true=1.0,
+    sigma2_u_true=1.5,
+    annotation=False,
+):
+    """
+    Generates dummy data for testing the LMM.
+    """
+    M, G, C, M_annot, G_annot = generate_data(
+        n_samples, n_meth_rows, n_gene_rows, annotation
+    )
+
+    group_ids = np.repeat(np.arange(n_groups), n_samples // n_groups)
+    Z = pd.get_dummies(group_ids)
+    u = np.random.normal(0, np.sqrt(sigma2_u_true), n_groups)
+    e = np.random.normal(0, np.sqrt(sigma2_e_true), n_samples)
+
+    if beta_true is None:
+        beta_true = np.random.rand(n_covariates + 2)
+
+    # For simplicity, we'll just modify the first gene expression row
+    # to follow an LMM model.
+    G.iloc[0] = (
+        beta_true[0]
+        + M.iloc[0].values * beta_true[1]
+        + C.values @ beta_true[2:]
+        + Z.values @ u
+        + e
+    )
+
+    return M, G, C, Z, M_annot, G_annot

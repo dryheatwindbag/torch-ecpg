@@ -31,6 +31,7 @@ from .pearson_full import (
 )
 from .regression_full import regression_full
 from .regression_single import regression_single
+from .lmm_pytorch import lmm_pytorch_full
 from .test_data import generate_data
 from .tool import (
     estimate_constants_bytes,
@@ -449,6 +450,75 @@ def mlr_single(
         args.append(output_path)
     output = regression_single(*args, **logger)
     if not regressions_per_chunk:
+        save_dataframes([output], output_path, [data['output_file']], **logger)
+
+
+@run.command()
+@click.option(
+    '--all', 'region', show_default=True, flag_value='all', default=True
+)
+@click.option('--cis', 'region', show_default=True, flag_value='cis')
+@click.option('--distal', 'region', show_default=True, flag_value='distal')
+@click.option('--trans', 'region', show_default=True, flag_value='trans')
+@click.option('-w', '--window-base', show_default=True, type=int)
+@click.option('-d', '--downstream', show_default=True, type=int)
+@click.option('-u', '--upstream', show_default=True, type=int)
+@click.option('-C', '--chunk-size', show_default=True, type=int, default=0)
+@click.option('-z', '--z-file', show_default=True, type=click.Path(dir_okay=False))
+@click.pass_context
+def lmm_pytorch(
+    ctx: click.Context,
+    region: str,
+    window_base: Optional[int],
+    downstream: Optional[int],
+    upstream: Optional[int],
+    chunk_size: int,
+    z_file: Optional[str],
+) -> None:
+    logger: Logger = ctx.obj['logger']
+
+    data_path = os.path.join(data['root_path'], data['input_dir'])
+    output_path = os.path.join(data['root_path'], data['output_dir'])
+
+    dataframes = read_dataframes(data_path, **logger)
+    M = dataframes[data['meth_file']]
+    G = dataframes[data['gene_file']]
+    C = dataframes[data['covar_file']]
+
+    if z_file is None:
+        raise ValueError("Z matrix file must be provided for LMM analysis.")
+    Z = read_dataframes(data_path, Z=z_file, **logger)[z_file]
+
+    M_annot = None
+    G_annot = None
+    if region != 'all':
+        annot_path = os.path.join(data['root_path'], data['annot_dir'])
+        annot_dfs = read_dataframes(annot_path, M_annot=data['meth_annot'], G_annot=data['gene_annot'], **logger)
+        M_annot = annot_dfs[data['meth_annot']]
+        G_annot = annot_dfs[data['gene_annot']]
+
+
+    window_base = default_region_parameter(
+        'window_base',
+        window_base,
+        region,
+        {'cis': DEFAULT_CIS_WINDOW_BASE, 'distal': DEFAULT_DISTAL_WINDOW_BASE},
+    )
+    downstream = default_region_parameter(
+        'downstream',
+        downstream,
+        region,
+        {'cis': DEFAULT_CIS_DOWNSTREAM, 'distal': DEFAULT_DISTAL_DOWNSTREAM},
+    )
+    upstream = default_region_parameter(
+        'upstream',
+        upstream,
+        region,
+        {'cis': DEFAULT_CIS_UPSTREAM, 'distal': DEFAULT_DISTAL_UPSTREAM},
+    )
+
+    output = lmm_pytorch_full(M, G, C, Z, M_annot, G_annot, region, window_base, downstream, upstream, chunk_size=chunk_size, output_dir=output_path, **logger)
+    if output is not None:
         save_dataframes([output], output_path, [data['output_file']], **logger)
 
 
