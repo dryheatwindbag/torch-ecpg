@@ -406,6 +406,15 @@ run_workload() {
     local cell_dir="$OUT_DIR/$cell_name"
     mkdir -p "$cell_dir"
 
+    # tecpg's regression entry points call helper.initialize_dir() on the
+    # --output-dir, which does shutil.rmtree() + os.mkdir(). If we point
+    # tecpg at $cell_dir directly it wipes the diagnostic artifacts that
+    # this script writes there (tecpg.log, cell.txt, samplers' CSVs, ...),
+    # leaving extract_metrics with nothing to analyze. Use a sub-directory
+    # for tecpg's output so it can safely be cleared.
+    local tecpg_out_dir="$cell_dir/output"
+    mkdir -p "$tecpg_out_dir"
+
     log "Running cell: $cell_name"
 
     local tecpg_args="run mlr --mlr-method lstsq --$MAPPING --compute-ig"
@@ -415,7 +424,7 @@ run_workload() {
     if [ -n "$BLAS_THREADS" ]; then tecpg_args+=" --blas-threads $BLAS_THREADS"; fi
     tecpg_args+=" $extra_args"
 
-    local base_cmd="tecpg --debug -i data_${DATASET} -a annot_${DATASET} -o $cell_dir $tecpg_args"
+    local base_cmd="tecpg --debug -i data_${DATASET} -a annot_${DATASET} -o $tecpg_out_dir $tecpg_args"
 
     local env_cmd="env TECPG_PROFILE=1 CUDA_LAUNCH_BLOCKING=${TECPG_PROFILING_BLOCKING:-0} $extra_env"
 
@@ -494,7 +503,7 @@ run_workload() {
     stop_samplers
 
     if [ "$KEEP_OUTPUT" -eq 0 ]; then
-        rm -f "$cell_dir"/*.csv "$cell_dir"/*.parquet 2>/dev/null || true
+        rm -rf "$tecpg_out_dir" 2>/dev/null || true
     fi
 
     local row
