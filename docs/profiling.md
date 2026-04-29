@@ -16,6 +16,9 @@ To run a full diagnostic workload using realistic data and iterate through perfo
 ./profiling.sh -d gtp -D 600 --matrix
 ```
 
+For fork-only post-PR #130 follow-up validation, use the evidence checklist in
+[`fork-gpu-performance-validation-plan.md`](fork-gpu-performance-validation-plan.md).
+
 When it finishes, `profiling.sh` outputs an absolute path to a `.tar.gz` bundle with the collected data.
 
 ## The Output Bundle
