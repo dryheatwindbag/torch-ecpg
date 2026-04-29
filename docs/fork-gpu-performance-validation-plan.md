@@ -50,6 +50,18 @@ Expected result:
 - compileall exits with status 0
 - `git status --short` is empty
 
+The helper script runs the same preflight and records environment evidence:
+
+```bash
+tools/fork_gpu_performance_validation.sh
+```
+
+If GPU prerequisites are available and the operator is ready to run the profiles:
+
+```bash
+tools/fork_gpu_performance_validation.sh --run-profiles
+```
+
 ## Required Environment Evidence
 
 Record these facts in the validation report:

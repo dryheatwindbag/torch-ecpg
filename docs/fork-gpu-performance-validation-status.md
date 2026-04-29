@@ -97,6 +97,18 @@ Run the validation plan on a machine with:
 - installed Python dependencies, including `torch`
 - access to the realistic `gtp` dataset or the closest available substitute
 
+Use the helper script to run preflight and capture environment evidence:
+
+```bash
+tools/fork_gpu_performance_validation.sh
+```
+
+When GPU prerequisites are present, run the full profile sequence:
+
+```bash
+tools/fork_gpu_performance_validation.sh --run-profiles
+```
+
 Start with the smoke profile:
 
 ```bash
