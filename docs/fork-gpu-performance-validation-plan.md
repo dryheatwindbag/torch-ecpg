@@ -10,6 +10,8 @@ GPU/performance behavior.
 
 Current local validation status is tracked in
 [`fork-gpu-performance-validation-status.md`](fork-gpu-performance-validation-status.md).
+GPU-machine execution handoff instructions are in
+[`fork-gpu-run-handoff.md`](fork-gpu-run-handoff.md).
 
 ## Baseline Under Test
 

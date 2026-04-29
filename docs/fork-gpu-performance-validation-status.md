@@ -6,6 +6,9 @@ This status applies only to `dryheatwindbag/torch-ecpg:dev`. It does not target
 `kordk/torch-ecpg`, reopen upstream PR #150 or #152, prove upstream acceptance,
 prove GPU/performance recovery, prove release readiness, or close MVP.
 
+Current GPU-run handoff instructions are in
+[`fork-gpu-run-handoff.md`](fork-gpu-run-handoff.md).
+
 ## Baseline Checked
 
 Repository:
@@ -23,7 +26,7 @@ dev
 Commit checked:
 
 ```text
-54352adf36b6e691f40361ded9f8f0ee318b308b
+8ccbcf740c0830cdd23b4955265ed910d2f7fff6
 ```
 
 ## Local Preflight Result
@@ -37,7 +40,7 @@ python3 -m unittest tests.test_process_pool_spawn tests.test_pearson_pool_lifecy
 Observed result:
 
 ```text
-Ran 2 tests in 0.296s
+Ran 2 tests in 0.298s
 OK
 ```
 
@@ -62,12 +65,14 @@ GPU/performance profiling could not be run in this environment.
 Observed blockers:
 
 ```text
-nvidia-smi: command not found
 ModuleNotFoundError: No module named 'torch'
+nvidia-smi: command not found
 ```
 
 Because of those blockers, the smoke profile and realistic recovery profile in
-`docs/fork-gpu-performance-validation-plan.md` were not executed.
+`docs/fork-gpu-performance-validation-plan.md` were not executed. The command
+`tools/fork_gpu_performance_validation.sh --run-profiles` was not run because
+required GPU/CUDA prerequisites are unavailable.
 
 ## Evidence Boundary
 
