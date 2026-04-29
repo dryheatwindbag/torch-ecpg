@@ -8,6 +8,9 @@ upstream acceptance, prove release readiness, or close MVP. It defines the
 evidence needed to determine whether the fork's PR #130 follow-up work improved
 GPU/performance behavior.
 
+Current local validation status is tracked in
+[`fork-gpu-performance-validation-status.md`](fork-gpu-performance-validation-status.md).
+
 ## Baseline Under Test
 
 Use the fork baseline:
