@@ -1,0 +1,157 @@
+# Bundled Python Distribution Plan
+
+This is a planning scaffold for downloadable Torch-eCpG (`tecpg`) bundles that
+include a Python runtime. It does not change runtime behavior, packaging
+metadata, CUDA handling, or the Pearson process lifecycle.
+
+## Decision Gate Findings
+
+`tecpg` is currently launched through the `tecpg` console script declared in
+`setup.py`:
+
+```python
+entry_points={'console_scripts': ['tecpg = tecpg.__main__:main']}
+```
+
+The console script calls `tecpg.__main__.main()`, which applies the
+`TECPG_BLAS_THREADS` pre-import shim and then starts the Click CLI through
+`tecpg.cli.start()`.
+
+Packaging metadata found in the repository:
+
+- `setup.py`
+- `requirements.txt`
+- `README.md`
+- `LICENSE`
+
+No `pyproject.toml`, `setup.cfg`, lockfile, or platform packaging workflow is
+currently present.
+
+The project is pip-installable with setuptools. A development install is
+documented as:
+
+```sh
+pip install --editable .
+```
+
+The first bundled-download strategy should be CPU-only zip artifacts with a
+platform-local Python runtime, the installed `tecpg` package, dependencies,
+launcher scripts, README, license notices, a smoke test, and SHA256 checksums.
+Windows and macOS must be built as separate artifacts.
+
+## Artifact Matrix
+
+| Artifact | Architecture | Python | Accelerator scope | Status |
+| --- | --- | --- | --- | --- |
+| `tecpg-windows-x64-cpu.zip` | Windows x64 | Bundled Windows x64 runtime | CPU-first | Planned |
+| `tecpg-macos-arm64-cpu.zip` | macOS arm64 | Bundled macOS arm64 runtime | CPU-first | Planned |
+| `tecpg-macos-x64-cpu.zip` | macOS x64 | Bundled macOS x64 runtime | CPU-first | Optional if wheel availability and runner coverage are practical |
+
+## GPU and CUDA Boundary
+
+Bundled desktop downloads are CPU-first. They must not claim GPU or CUDA
+support, and they should not include CUDA-specific validation as a release
+condition for the CPU bundles.
+
+GPU/CUDA validation remains separate from bundled-download validation. Future
+GPU packaging work may define dedicated artifacts, dependency indexes, hardware
+requirements, and validation gates, but that work is outside this scaffold.
+
+## Bundle Contents
+
+Each CPU bundle should contain:
+
+- Python runtime for the target platform and architecture.
+- Installed `tecpg` package.
+- Runtime dependencies installed into the bundled environment.
+- `tecpg` launcher for the platform.
+- Bundle README with supported platform, launch instructions, CPU scope, and
+  known limitations.
+- License notices for Torch-eCpG, Python, PyTorch, and bundled dependencies.
+- Smoke test script.
+- SHA256 checksum for the downloadable zip.
+
+Suggested layout:
+
+```text
+tecpg-<platform>-<arch>-cpu/
+  python/
+  site/
+  bin/ or Scripts/
+  launchers/
+  README.md
+  licenses/
+  smoke_test.py
+  SHA256SUMS.txt
+```
+
+The exact layout can change once a build tool is selected, but the launcher
+must resolve the bundled Python rather than relying on a system Python.
+
+## Build Workflow Outline
+
+Use separate jobs because bundled Python, binary wheels, launcher scripts, and
+post-build validation are platform-specific.
+
+Windows runner:
+
+1. Check out the repository.
+2. Select a supported CPython x64 runtime.
+3. Create an isolated bundle directory.
+4. Install CPU-only dependencies and the local `tecpg` package into the bundle.
+5. Add a Windows launcher.
+6. Add README, license notices, smoke test, and checksums.
+7. Run bundle smoke tests from the packaged launcher.
+8. Upload `tecpg-windows-x64-cpu.zip` and checksum artifacts.
+
+macOS runner:
+
+1. Check out the repository.
+2. Build on macOS arm64 for `tecpg-macos-arm64-cpu.zip`.
+3. Optionally build macOS x64 if runner and wheel availability are practical.
+4. Create an isolated bundle directory with a platform-local Python runtime.
+5. Install CPU-only dependencies and the local `tecpg` package into the bundle.
+6. Add macOS launcher.
+7. Add README, license notices, smoke test, and checksums.
+8. Run bundle smoke tests from the packaged launcher.
+9. Upload macOS zip and checksum artifacts.
+
+Smoke tests should run after packaging, from the unpacked artifact, so they
+exercise the downloadable layout rather than the source checkout.
+
+## Required Validation
+
+For each artifact, run:
+
+```sh
+tecpg --help
+tecpg data --help
+tecpg run mlr --help
+```
+
+Also run a focused unittest bridge if feasible in the bundled environment. The
+first candidate is the smallest CPU-safe test that proves the packaged import
+and CLI bridge without requiring optional scientific data downloads or GPU
+hardware.
+
+The common smoke test scaffold is `packaging/common/smoke_test.py`.
+
+## Risks
+
+- PyTorch and scientific Python dependencies may make zip artifacts large.
+- Platform-specific wheels can differ across Windows x64, macOS arm64, and
+  macOS x64.
+- macOS signing, notarization, and quarantine behavior may block or warn on
+  downloaded launchers until a signing plan exists.
+- Windows antivirus products may flag unsigned launchers or embedded Python
+  layouts, especially if generated by freezer tools.
+- CUDA/GPU support is not included in the CPU bundle and must not be implied by
+  bundled-download naming or validation.
+
+## Next Packaging PR
+
+The next safest packaging PR should add one platform build workflow behind
+manual dispatch, preferably Windows x64 CPU first. It should create a zip from
+an installed bundle, run `packaging/common/smoke_test.py` against the unpacked
+launcher, produce `SHA256SUMS.txt`, and upload artifacts without changing
+runtime implementation.
