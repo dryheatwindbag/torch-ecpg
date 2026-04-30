@@ -18,6 +18,9 @@ public distribution readiness.
 Retention procedure:
 [`docs/windows-cpu-bundle-artifact-retention.md`](windows-cpu-bundle-artifact-retention.md)
 
+Cross-platform rollup:
+[`docs/cpu-bundle-artifact-evidence-rollup.md`](cpu-bundle-artifact-evidence-rollup.md)
+
 ## Workflow Run
 
 - Workflow: `Windows CPU Bundle`

@@ -4,6 +4,9 @@ This is a planning scaffold for downloadable Torch-eCpG (`tecpg`) bundles that
 include a Python runtime. It does not change runtime behavior, packaging
 metadata, CUDA handling, or the Pearson process lifecycle.
 
+Current CPU bundle evidence rollup:
+[`docs/cpu-bundle-artifact-evidence-rollup.md`](cpu-bundle-artifact-evidence-rollup.md)
+
 ## Decision Gate Findings
 
 `tecpg` is currently launched through the `tecpg` console script declared in
