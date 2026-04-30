@@ -1,0 +1,67 @@
+name: macOS arm64 CPU Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: macOS Python runtime version to bundle
+        required: true
+        default: "3.11"
+      torch-package:
+        description: CPU PyTorch package spec
+        required: true
+        default: "torch"
+
+jobs:
+  macos-arm64-cpu-bundle:
+    name: macOS arm64 CPU bundle
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ inputs.python-version }}"
+
+      - name: Confirm arm64 runner
+        run: |
+          test "$(uname -m)" = "arm64"
+          python -c "import platform; print(platform.machine())"
+
+      - name: Validate shell syntax
+        run: |
+          bash -n packaging/macos/build_bundle.sh
+          echo "shell parse ok"
+
+      - name: Build macOS arm64 CPU bundle
+        run: >
+          packaging/macos/build_bundle.sh
+          --python-exe python
+          --torch-package "${{ inputs.torch-package }}"
+
+      - name: Confirm bundle outputs
+        run: |
+          test -f dist/tecpg-macos-arm64-cpu.zip
+          test -f dist/SHA256SUMS.txt
+          cat dist/SHA256SUMS.txt
+
+      - name: Smoke test unpacked bundle
+        run: |
+          bundle_root="$GITHUB_WORKSPACE/dist/unpacked/tecpg-macos-arm64-cpu"
+          smoke_python="$bundle_root/python/bin/python"
+          smoke_test="$bundle_root/smoke_test.py"
+          launcher="$bundle_root/launchers/tecpg"
+          cd "$RUNNER_TEMP"
+          "$smoke_python" "$smoke_test" "$launcher"
+
+      - name: Upload macOS arm64 CPU bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tecpg-macos-arm64-cpu
+          path: |
+            dist/tecpg-macos-arm64-cpu.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
