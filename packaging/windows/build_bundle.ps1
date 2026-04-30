@@ -43,8 +43,14 @@ $PythonExe = Join-Path $PythonRoot "python.exe"
 
 $SitePackagesRoot = (Resolve-Path (Join-Path $PythonRoot "Lib/site-packages")).Path
 $SourcePackageRoot = (Resolve-Path (Join-Path $RepoRoot "tecpg")).Path
-& $PythonExe -c "import pathlib, sys, tecpg; p=pathlib.Path(tecpg.__file__).resolve(); site=pathlib.Path(sys.argv[1]).resolve(); source=pathlib.Path(sys.argv[2]).resolve(); print(p); raise SystemExit(0 if site in p.parents and source not in p.parents else 1)" $SitePackagesRoot $SourcePackageRoot
-& $PythonExe -c "import torch; print(torch.__version__, torch.cuda.is_available()); raise SystemExit(1 if torch.cuda.is_available() else 0)"
+Push-Location $env:TEMP
+try {
+    & $PythonExe -c "import pathlib, sys, tecpg; p=pathlib.Path(tecpg.__file__).resolve(); site=pathlib.Path(sys.argv[1]).resolve(); source=pathlib.Path(sys.argv[2]).resolve(); print(p); raise SystemExit(0 if site in p.parents and source not in p.parents else 1)" $SitePackagesRoot $SourcePackageRoot
+    & $PythonExe -c "import torch; print(torch.__version__, torch.cuda.is_available()); raise SystemExit(1 if torch.cuda.is_available() else 0)"
+}
+finally {
+    Pop-Location
+}
 
 $LauncherPath = Join-Path $LauncherRoot "tecpg.cmd"
 @"
