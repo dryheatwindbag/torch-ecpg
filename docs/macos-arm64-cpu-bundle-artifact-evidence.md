@@ -16,6 +16,9 @@ bundle support, scientific correctness, real-data execution, signing,
 notarization, quarantine behavior, antivirus behavior, or public distribution
 readiness.
 
+Cross-platform rollup:
+[`docs/cpu-bundle-artifact-evidence-rollup.md`](cpu-bundle-artifact-evidence-rollup.md)
+
 ## Workflow Run
 
 - Workflow: `macOS arm64 CPU Bundle`
