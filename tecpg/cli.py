@@ -639,12 +639,18 @@ def mlr(
         if permute_label_test:
             logger.warning('--permute-label-test is only supported for mlr-method lstsq')
         kwargs.pop('permute_label_test', None)
+        if subsample_mt_count is not None or subsample_g_count is not None:
+            logger.warning('--subsample-mt-count/--subsample-g-count are only supported for mlr-method lstsq')
+        kwargs.pop('subsample_mt_count', None)
+        kwargs.pop('subsample_g_count', None)
+        kwargs.pop('seed', None)
         if compute_ig or compute_ig_deep:
             logger.warning('Integrated Gradients (--compute-ig/--compute-ig-deep) are only supported for mlr-method lstsq. They will be ignored.')
         kwargs.pop('compute_ig', None)
         kwargs.pop('compute_ig_deep', None)
         kwargs.pop('ig_baseline', None)
         kwargs.pop('ig_covariates_filter', None)
+        kwargs.pop('prefetch_chunks', None)
         output = regression_full(**kwargs, **logger)
     if not chunking:
         save_dataframes([output], output_path, [data['output_file']], **logger)
