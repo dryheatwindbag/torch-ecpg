@@ -108,6 +108,9 @@ This is not Defender acceptance evidence. A follow-up PR must either fix the
 Defender invocation for CI or move Defender evidence to a clean Windows x64
 machine or VM where scan output can be captured reliably.
 
+Expanded Defender diagnostic evidence:
+[`docs/windows-defender-diagnostics-dry-run-evidence.md`](windows-defender-diagnostics-dry-run-evidence.md)
+
 ## Dry-Run Boundary
 
 The dry-run boundary file recorded:
