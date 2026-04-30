@@ -2,9 +2,10 @@
 import os
 import sys
 import random
+import importlib.util
+import unittest
 import pandas as pd
 import numpy as np
-import scipy.stats
 from typing import List
 
 # Ensure we can import tecpg
@@ -12,18 +13,52 @@ root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-import tecpg
-from tecpg.test_data import generate_data
-from tecpg.regression_full import regression_full
-from tecpg.logger import Logger
-from tecpg.helper import logit_transform_pandas
+REQUIRED_VALIDATION_MODULES = (
+    'scipy',
+    'torch',
+    'statsmodels',
+    'matplotlib',
+)
 
-try:
-    from tests.validation_utils import run_statsmodels_ols, compare_results, save_scatter_plot
-except ImportError:
-    from validation_utils import run_statsmodels_ols, compare_results, save_scatter_plot
+missing_validation_modules = [
+    module
+    for module in REQUIRED_VALIDATION_MODULES
+    if importlib.util.find_spec(module) is None
+]
+
+skip_reason = ""
+if missing_validation_modules:
+    skip_reason = (
+        "accuracy validation requires optional dependencies: "
+        + ", ".join(missing_validation_modules)
+    )
+    if __name__ == "__main__":
+        print(f"SKIPPED: {skip_reason}")
+        sys.exit(0)
+else:
+    import scipy.stats
+    import tecpg
+    from tecpg.test_data import generate_data
+    from tecpg.regression_full import regression_full
+    from tecpg.logger import Logger
+    from tecpg.helper import logit_transform_pandas
+
+    try:
+        from tests.validation_utils import run_statsmodels_ols, compare_results, save_scatter_plot
+    except ImportError:
+        from validation_utils import run_statsmodels_ols, compare_results, save_scatter_plot
+
+
+@unittest.skipIf(bool(missing_validation_modules), skip_reason)
+class AccuracyValidationDependencyTests(unittest.TestCase):
+    def test_required_validation_modules_available(self):
+        self.assertFalse(missing_validation_modules)
+
 
 def run_accuracy_test(logit_transform=False):
+    if missing_validation_modules:
+        raise unittest.SkipTest(skip_reason)
+
     transform_name = "M-values" if logit_transform else "Beta-values"
     print(f"\nStarting tecpg accuracy validation test ({transform_name})...")
 
