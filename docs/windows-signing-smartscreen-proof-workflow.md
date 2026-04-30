@@ -29,6 +29,9 @@ First dry-run failure evidence:
 First successful dry-run evidence:
 [`docs/windows-signing-smartscreen-dry-run-evidence.md`](windows-signing-smartscreen-dry-run-evidence.md)
 
+Defender evidence path:
+[`docs/windows-defender-evidence-path.md`](windows-defender-evidence-path.md)
+
 Trigger:
 `workflow_dispatch`
 
@@ -80,6 +83,7 @@ The workflow records:
   files.
 - Script launcher inventory for `.cmd`, `.bat`, and `.ps1` files.
 - Microsoft Defender scan output if `MpCmdRun.exe` is available.
+- Microsoft Defender status and preference diagnostics if available.
 - `signtool sign` execution in proof mode.
 - `signtool verify /pa /v` output in proof mode.
 - `Get-AuthenticodeSignature` output in proof mode.
