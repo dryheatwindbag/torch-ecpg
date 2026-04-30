@@ -150,3 +150,6 @@ the first signing proof. If acceptable, run the workflow once with
 `dry_run: "false"` and Apple signing secrets configured. If the inventory scope
 is too broad, narrow the signing selection in a separate workflow PR before
 using signing secrets.
+
+Proof-mode secret readiness:
+[`docs/macos-notarization-proof-mode-secret-readiness.md`](macos-notarization-proof-mode-secret-readiness.md)
