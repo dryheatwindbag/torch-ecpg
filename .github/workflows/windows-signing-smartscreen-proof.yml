@@ -91,7 +91,7 @@ jobs:
           if (Test-Path $ChecksumFile) {
             $ExpectedHash = Get-Content $ChecksumFile |
               ForEach-Object {
-                $Parts = $_ -split "\\s+"
+                $Parts = $_ -split "\s+"
                 if ($Parts.Length -ge 2 -and $Parts[1] -eq "$env:BUNDLE_NAME.zip") {
                   $Parts[0]
                 }
