@@ -42,6 +42,9 @@ diagnostics before and during scan attempts:
 These diagnostics are recorded for unsigned dry-run scan targets and for signed
 artifact scan targets in proof mode.
 
+Expanded diagnostic dry-run evidence:
+[`docs/windows-defender-diagnostics-dry-run-evidence.md`](windows-defender-diagnostics-dry-run-evidence.md)
+
 ## Evidence Boundary
 
 Capturing Defender diagnostics does not prove Defender acceptance. A future
@@ -71,7 +74,7 @@ commands and logs.
 
 ## Next Safe Action
 
-Expose this workflow update on the repository default branch, rerun
-`dry_run: "true"` against the proven Windows artifact, and review the expanded
-Defender diagnostics before deciding whether proof mode can use CI-based
-Defender evidence.
+Park CI-based Defender acceptance and move Defender evidence to a clean Windows
+x64 VM or physical machine. Keep the GitHub workflow for artifact download,
+checksum, extraction, inventory, and diagnostic evidence, but do not use it to
+claim Defender acceptance.
