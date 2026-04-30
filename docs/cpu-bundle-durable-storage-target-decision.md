@@ -13,6 +13,9 @@ retention.
 This decision gate does not move artifacts, create release assets, publish
 downloads, or claim release readiness.
 
+Selected staging target:
+[`docs/cpu-bundle-draft-release-staging-target.md`](cpu-bundle-draft-release-staging-target.md)
+
 ## Current Artifact Sources
 
 | Platform | Workflow run | Artifact name | Artifact ID | Zip | SHA256 |
