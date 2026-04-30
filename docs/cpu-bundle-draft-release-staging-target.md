@@ -9,6 +9,9 @@ Classification: docs / packaging evidence / durable storage staging decision
 Decision: use draft GitHub Release assets as the next durable staging target for
 the proven Windows x64 and macOS arm64 CPU bundled-Python smoke artifacts.
 
+Draft release staging evidence:
+[`docs/cpu-bundle-draft-release-staging-evidence.md`](cpu-bundle-draft-release-staging-evidence.md)
+
 This decision does not publish downloads, move artifacts, create a public
 release, or claim release readiness. It only selects the staging target for a
 follow-up handoff evidence step.
