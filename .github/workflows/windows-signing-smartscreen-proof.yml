@@ -153,6 +153,33 @@ jobs:
         continue-on-error: true
         run: |
           $ErrorActionPreference = "Continue"
+          $StatusPath = "proof/defender-status.txt"
+          $ScanPath = "proof/defender-scan.txt"
+
+          "== Get-MpComputerStatus ==" | Tee-Object -FilePath $StatusPath
+          try {
+            Get-MpComputerStatus |
+              Format-List * |
+              Out-String |
+              Tee-Object -FilePath $StatusPath -Append
+          }
+          catch {
+            "Get-MpComputerStatus failed: $($_.Exception.Message)" |
+              Tee-Object -FilePath $StatusPath -Append
+          }
+
+          "== Get-MpPreference ==" | Tee-Object -FilePath $StatusPath -Append
+          try {
+            Get-MpPreference |
+              Format-List * |
+              Out-String |
+              Tee-Object -FilePath $StatusPath -Append
+          }
+          catch {
+            "Get-MpPreference failed: $($_.Exception.Message)" |
+              Tee-Object -FilePath $StatusPath -Append
+          }
+
           $Targets = @(
             "proof/unsigned-artifact/$env:BUNDLE_NAME.zip",
             "proof/work/$env:BUNDLE_NAME"
@@ -162,14 +189,23 @@ jobs:
             $MpCmdRun = Join-Path ${env:ProgramFiles(x86)} "Windows Defender/MpCmdRun.exe"
           }
           if (!(Test-Path $MpCmdRun)) {
-            "MpCmdRun.exe not found" | Tee-Object -FilePath proof/defender-scan.txt
+            "MpCmdRun.exe not found" | Tee-Object -FilePath $ScanPath
             exit 0
           }
+          "MpCmdRun path: $MpCmdRun" | Tee-Object -FilePath $ScanPath
 
+          $Index = 0
           foreach ($Target in $Targets) {
-            "== $Target ==" | Tee-Object -FilePath proof/defender-scan.txt -Append
+            $Index += 1
+            "== $Target ==" | Tee-Object -FilePath $ScanPath -Append
             & $MpCmdRun -Scan -ScanType 3 -File $Target 2>&1 |
-              Tee-Object -FilePath proof/defender-scan.txt -Append
+              Tee-Object -FilePath $ScanPath -Append
+            "ExitCode: $LASTEXITCODE" | Tee-Object -FilePath $ScanPath -Append
+
+            $MpCmdRunLog = Join-Path $env:TEMP "MpCmdRun.log"
+            if (Test-Path $MpCmdRunLog) {
+              Copy-Item -Force $MpCmdRunLog "proof/MpCmdRun-unsigned-$Index.log"
+            }
           }
 
       - name: Stop before signing in dry run
@@ -298,21 +334,31 @@ jobs:
         continue-on-error: true
         run: |
           $ErrorActionPreference = "Continue"
+          $ScanPath = "proof/defender-signed-scan.txt"
           $MpCmdRun = Join-Path $env:ProgramFiles "Windows Defender/MpCmdRun.exe"
           if (!(Test-Path $MpCmdRun)) {
             $MpCmdRun = Join-Path ${env:ProgramFiles(x86)} "Windows Defender/MpCmdRun.exe"
           }
           if (!(Test-Path $MpCmdRun)) {
-            "MpCmdRun.exe not found" | Tee-Object -FilePath proof/defender-signed-scan.txt
+            "MpCmdRun.exe not found" | Tee-Object -FilePath $ScanPath
             exit 0
           }
+          "MpCmdRun path: $MpCmdRun" | Tee-Object -FilePath $ScanPath
+          $Index = 0
           foreach ($Target in @(
             "proof/signed-artifact/$env:BUNDLE_NAME-signed.zip",
             "proof/work/$env:BUNDLE_NAME"
           )) {
-            "== $Target ==" | Tee-Object -FilePath proof/defender-signed-scan.txt -Append
+            $Index += 1
+            "== $Target ==" | Tee-Object -FilePath $ScanPath -Append
             & $MpCmdRun -Scan -ScanType 3 -File $Target 2>&1 |
-              Tee-Object -FilePath proof/defender-signed-scan.txt -Append
+              Tee-Object -FilePath $ScanPath -Append
+            "ExitCode: $LASTEXITCODE" | Tee-Object -FilePath $ScanPath -Append
+
+            $MpCmdRunLog = Join-Path $env:TEMP "MpCmdRun.log"
+            if (Test-Path $MpCmdRunLog) {
+              Copy-Item -Force $MpCmdRunLog "proof/MpCmdRun-signed-$Index.log"
+            }
           }
 
       - name: Record SmartScreen boundary
