@@ -10,6 +10,9 @@ Scope: define a repeatable download, verification, and durable storage handoff
 for the currently proven Windows x64 and macOS arm64 CPU bundled-Python smoke
 artifacts.
 
+Public distribution risk plan:
+[`docs/cpu-bundle-public-distribution-risk-plan.md`](cpu-bundle-public-distribution-risk-plan.md)
+
 This plan does not claim release readiness, public distribution readiness,
 signing/notarization/quarantine behavior, Windows antivirus behavior, GPU/CUDA
 support, scientific correctness, real-data execution, long-running workload
