@@ -1,0 +1,58 @@
+name: Windows CPU Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      python-version:
+        description: Windows Python runtime version to bundle
+        required: true
+        default: "3.11.9"
+      torch-package:
+        description: CPU PyTorch package spec
+        required: true
+        default: "torch"
+
+jobs:
+  windows-x64-cpu-bundle:
+    name: Windows x64 CPU bundle
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: >
+          $null = [scriptblock]::Create((Get-Content packaging/windows/build_bundle.ps1 -Raw));
+          'ps1 parse ok'
+
+      - name: Build Windows x64 CPU bundle
+        shell: pwsh
+        run: >
+          ./packaging/windows/build_bundle.ps1
+          -PythonVersion "${{ inputs.python-version }}"
+          -TorchPackage "${{ inputs.torch-package }}"
+
+      - name: Confirm bundle outputs
+        shell: pwsh
+        run: |
+          if (!(Test-Path dist/tecpg-windows-x64-cpu.zip)) { throw "Missing dist/tecpg-windows-x64-cpu.zip" }
+          if (!(Test-Path dist/SHA256SUMS.txt)) { throw "Missing dist/SHA256SUMS.txt" }
+          Get-Content dist/SHA256SUMS.txt
+
+      - name: Smoke test unpacked bundle
+        shell: pwsh
+        run: >
+          dist/unpacked/tecpg-windows-x64-cpu/packaging-smoke/python/python.exe
+          packaging/common/smoke_test.py
+          dist/unpacked/tecpg-windows-x64-cpu/launchers/tecpg.cmd
+
+      - name: Upload Windows x64 CPU bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: tecpg-windows-x64-cpu
+          path: |
+            dist/tecpg-windows-x64-cpu.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error

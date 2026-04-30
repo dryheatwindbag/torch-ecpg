@@ -6,6 +6,11 @@ This scaffold is for a Windows x64 CPU-first bundle that includes Python. End
 users should be able to unzip the artifact and run the included launcher
 without installing Python manually.
 
+The manual GitHub Actions workflow is `.github/workflows/windows-cpu-bundle.yml`.
+It builds the bundle on `windows-latest`, runs
+`packaging/common/smoke_test.py` against the unpacked launcher, generates
+`SHA256SUMS.txt`, and uploads the zip plus checksum artifacts.
+
 Planned bundle requirements:
 
 - Bundled Windows x64 Python runtime.
