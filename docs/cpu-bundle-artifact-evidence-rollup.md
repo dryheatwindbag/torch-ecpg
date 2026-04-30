@@ -9,6 +9,9 @@ Classification: docs / packaging evidence / dashboard / signoff
 Scope: summarize the current bundled-Python CPU artifact evidence for Windows
 x64 and macOS arm64.
 
+Retention plan:
+[`docs/cpu-bundle-artifact-retention-plan.md`](cpu-bundle-artifact-retention-plan.md)
+
 This rollup does not claim release readiness, public distribution readiness,
 signing/notarization/quarantine behavior, Windows antivirus behavior, GPU/CUDA
 support, scientific correctness, real-data execution, long-running workload
