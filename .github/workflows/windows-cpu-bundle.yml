@@ -43,10 +43,18 @@ jobs:
 
       - name: Smoke test unpacked bundle
         shell: pwsh
-        run: >
-          dist/unpacked/tecpg-windows-x64-cpu/packaging-smoke/python/python.exe
-          packaging/common/smoke_test.py
-          dist/unpacked/tecpg-windows-x64-cpu/launchers/tecpg.cmd
+        run: |
+          $BundleRoot = Join-Path $env:GITHUB_WORKSPACE "dist/unpacked/tecpg-windows-x64-cpu"
+          $SmokePython = Join-Path $BundleRoot "python/python.exe"
+          $SmokeTest = Join-Path $BundleRoot "smoke_test.py"
+          $Launcher = Join-Path $BundleRoot "launchers/tecpg.cmd"
+          Push-Location $env:RUNNER_TEMP
+          try {
+            & $SmokePython $SmokeTest $Launcher
+          }
+          finally {
+            Pop-Location
+          }
 
       - name: Upload Windows x64 CPU bundle
         uses: actions/upload-artifact@v4
