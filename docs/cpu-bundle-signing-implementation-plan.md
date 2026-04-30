@@ -11,6 +11,9 @@ Chosen packaging direction: signed zip.
 Scope: define a reproducible signing, notarization, and trust-validation
 approach for the already-proven Windows x64 and macOS arm64 CPU zip artifacts.
 
+macOS notarization proof workflow:
+[`docs/macos-notarization-proof-workflow.md`](macos-notarization-proof-workflow.md)
+
 This plan does not implement signing, notarization, installers, release
 automation, artifact generation, packaging format changes, runtime behavior
 changes, or public distribution. It does not claim release readiness or public
