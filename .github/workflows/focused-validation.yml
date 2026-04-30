@@ -1,0 +1,38 @@
+name: Focused Validation
+
+on:
+  pull_request:
+    branches:
+      - dev
+  push:
+    branches:
+      - dev
+
+jobs:
+  minimal-unittest:
+    name: Minimal unittest bridge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pandas numpy
+
+      - name: Run focused validation tests
+        run: >
+          python -m unittest
+          tests.test_accuracy
+          tests.test_auto_scale
+          tests.test_recalculate_pvalues
+          tests.test_process_pool_spawn
+          tests.test_pearson_pool_lifecycle
+          tests.test_gpu_monitor_mock
