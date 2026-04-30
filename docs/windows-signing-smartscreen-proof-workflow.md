@@ -26,6 +26,9 @@ Workflow file:
 First dry-run failure evidence:
 [`docs/windows-signing-smartscreen-dry-run-failure.md`](windows-signing-smartscreen-dry-run-failure.md)
 
+First successful dry-run evidence:
+[`docs/windows-signing-smartscreen-dry-run-evidence.md`](windows-signing-smartscreen-dry-run-evidence.md)
+
 Trigger:
 `workflow_dispatch`
 
