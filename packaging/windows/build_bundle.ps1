@@ -34,6 +34,7 @@ $PythonExe = Join-Path $PythonRoot "python.exe"
 & $PythonExe -m pip install --upgrade --index-url "https://download.pytorch.org/whl/cpu" --extra-index-url "https://pypi.org/simple" $TorchPackage
 & $PythonExe -m pip install -r (Join-Path $RepoRoot "requirements.txt")
 & $PythonExe -m pip install $RepoRoot
+& $PythonExe -c "import torch; print(torch.__version__, torch.cuda.is_available()); raise SystemExit(1 if torch.cuda.is_available() else 0)"
 
 $LauncherPath = Join-Path $LauncherRoot "tecpg.cmd"
 @"
@@ -66,3 +67,16 @@ Copy-Item -Recurse -Force $PythonRoot $SmokePythonRoot
 
 $Hash = (Get-FileHash -Algorithm SHA256 $ZipPath).Hash.ToLowerInvariant()
 "$Hash  $BundleName.zip" | Set-Content -Encoding ASCII $ChecksumPath
+
+Push-Location $DistRoot
+try {
+    $ExpectedHash = (Get-Content $ChecksumPath).Split(" ")[0]
+    $ActualHash = (Get-FileHash -Algorithm SHA256 "$BundleName.zip").Hash.ToLowerInvariant()
+    if ($ActualHash -ne $ExpectedHash) {
+        throw "SHA256 mismatch for $BundleName.zip"
+    }
+    Write-Output "SHA256 verified for $BundleName.zip"
+}
+finally {
+    Pop-Location
+}
