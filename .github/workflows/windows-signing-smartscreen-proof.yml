@@ -1,0 +1,334 @@
+name: Windows Signing SmartScreen Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: GitHub Actions run ID that produced the Windows CPU zip
+        required: true
+      source_artifact_name:
+        description: Source artifact name to download
+        required: true
+        default: tecpg-windows-x64-cpu
+      bundle_name:
+        description: Top-level bundle directory and zip stem
+        required: true
+        default: tecpg-windows-x64-cpu
+      expected_unsigned_sha256:
+        description: Optional expected SHA256 for the unsigned source zip
+        required: false
+      dry_run:
+        description: Inventory and Defender scan only; do not sign
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  windows-signing-smartscreen-proof:
+    name: Windows signing SmartScreen proof
+    runs-on: windows-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_ARTIFACT_NAME: ${{ inputs.source_artifact_name }}
+      BUNDLE_NAME: ${{ inputs.bundle_name }}
+      EXPECTED_UNSIGNED_SHA256: ${{ inputs.expected_unsigned_sha256 }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+      WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+      WINDOWS_SIGNING_TIMESTAMP_URL: ${{ secrets.WINDOWS_SIGNING_TIMESTAMP_URL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Confirm Windows runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          [System.Environment]::OSVersion.VersionString
+          [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+
+      - name: Download unsigned source artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path proof/unsigned-artifact | Out-Null
+          gh run download $env:SOURCE_RUN_ID `
+            --repo $env:GITHUB_REPOSITORY `
+            --name $env:SOURCE_ARTIFACT_NAME `
+            --dir proof/unsigned-artifact
+          Get-ChildItem -Recurse proof/unsigned-artifact | Select-Object FullName, Length
+
+      - name: Verify unsigned source checksum
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $UnsignedZip = Join-Path "proof/unsigned-artifact" "$env:BUNDLE_NAME.zip"
+          if (!(Test-Path $UnsignedZip)) {
+            throw "Missing unsigned source zip: $UnsignedZip"
+          }
+
+          $ActualHash = (Get-FileHash -Algorithm SHA256 $UnsignedZip).Hash.ToLowerInvariant()
+          "$ActualHash  $env:BUNDLE_NAME.zip" |
+            Tee-Object -FilePath proof/unsigned-source-sha256.txt
+
+          if ($env:EXPECTED_UNSIGNED_SHA256) {
+            if ($ActualHash -ne $env:EXPECTED_UNSIGNED_SHA256.ToLowerInvariant()) {
+              throw "Unsigned source SHA256 mismatch"
+            }
+          }
+
+          $ChecksumFile = Join-Path "proof/unsigned-artifact" "SHA256SUMS.txt"
+          if (Test-Path $ChecksumFile) {
+            $ExpectedHash = Get-Content $ChecksumFile |
+              ForEach-Object {
+                $Parts = $_ -split "\\s+"
+                if ($Parts.Length -ge 2 -and $Parts[1] -eq "$env:BUNDLE_NAME.zip") {
+                  $Parts[0]
+                }
+              } |
+              Select-Object -First 1
+            if (!$ExpectedHash) {
+              throw "No checksum entry found for $env:BUNDLE_NAME.zip"
+            }
+            if ($ActualHash -ne $ExpectedHash.ToLowerInvariant()) {
+              throw "Downloaded checksum file does not match unsigned source zip"
+            }
+          }
+
+      - name: Extract unsigned source zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path proof/work | Out-Null
+          Expand-Archive `
+            -Path "proof/unsigned-artifact/$env:BUNDLE_NAME.zip" `
+            -DestinationPath proof/work `
+            -Force
+          if (!(Test-Path "proof/work/$env:BUNDLE_NAME")) {
+            throw "Missing extracted bundle root: proof/work/$env:BUNDLE_NAME"
+          }
+
+      - name: Inventory signable content
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $BundleRoot = Join-Path "proof/work" $env:BUNDLE_NAME
+          $SignableExtensions = @(".exe", ".dll", ".pyd", ".sys", ".msi")
+          $ScriptExtensions = @(".cmd", ".bat", ".ps1")
+
+          Get-ChildItem -Path $BundleRoot -Recurse -File |
+            Where-Object { $SignableExtensions -contains $_.Extension.ToLowerInvariant() } |
+            Select-Object -ExpandProperty FullName |
+            Set-Content -Encoding ASCII proof/signable-files.txt
+
+          Get-ChildItem -Path $BundleRoot -Recurse -File |
+            Where-Object { $ScriptExtensions -contains $_.Extension.ToLowerInvariant() } |
+            Select-Object -ExpandProperty FullName |
+            Set-Content -Encoding ASCII proof/script-launchers.txt
+
+          if (!(Test-Path proof/signable-files.txt) -or
+              ((Get-Item proof/signable-files.txt).Length -eq 0)) {
+            throw "No signable Windows files were inventoried"
+          }
+
+          "Signable files:"
+          Get-Content proof/signable-files.txt
+          "Script launchers:"
+          if (Test-Path proof/script-launchers.txt) {
+            Get-Content proof/script-launchers.txt
+          }
+
+      - name: Defender scan unsigned source
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = "Continue"
+          $Targets = @(
+            "proof/unsigned-artifact/$env:BUNDLE_NAME.zip",
+            "proof/work/$env:BUNDLE_NAME"
+          )
+          $MpCmdRun = Join-Path $env:ProgramFiles "Windows Defender/MpCmdRun.exe"
+          if (!(Test-Path $MpCmdRun)) {
+            $MpCmdRun = Join-Path ${env:ProgramFiles(x86)} "Windows Defender/MpCmdRun.exe"
+          }
+          if (!(Test-Path $MpCmdRun)) {
+            "MpCmdRun.exe not found" | Tee-Object -FilePath proof/defender-scan.txt
+            exit 0
+          }
+
+          foreach ($Target in $Targets) {
+            "== $Target ==" | Tee-Object -FilePath proof/defender-scan.txt -Append
+            & $MpCmdRun -Scan -ScanType 3 -File $Target 2>&1 |
+              Tee-Object -FilePath proof/defender-scan.txt -Append
+          }
+
+      - name: Stop before signing in dry run
+        if: ${{ inputs.dry_run == 'true' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          @(
+            "Dry run completed.",
+            "No certificate was imported.",
+            "No files were signed.",
+            "No signed zip was created.",
+            "No SmartScreen reputation claim was made."
+          ) | Tee-Object -FilePath proof/dry-run-boundary.txt
+
+      - name: Import signing certificate
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          foreach ($SecretName in @(
+            "WINDOWS_CERTIFICATE_PFX_BASE64",
+            "WINDOWS_CERTIFICATE_PASSWORD",
+            "WINDOWS_SIGNING_TIMESTAMP_URL"
+          )) {
+            if (!(Get-Item "env:$SecretName").Value) {
+              throw "Missing required secret: $SecretName"
+            }
+          }
+
+          $CertificatePath = Join-Path $env:RUNNER_TEMP "windows-signing-cert.pfx"
+          [IO.File]::WriteAllBytes(
+            $CertificatePath,
+            [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64)
+          )
+          "Certificate material decoded to runner temp path." |
+            Tee-Object -FilePath proof/certificate-import.txt
+
+      - name: Locate signtool
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $SignTool = Get-ChildItem `
+            -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
+            -Recurse `
+            -Filter signtool.exe `
+            -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match "\\x64\\signtool.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (!$SignTool) {
+            throw "signtool.exe not found"
+          }
+          $SignTool.FullName | Tee-Object -FilePath proof/signtool-path.txt
+
+      - name: Sign Windows executable content
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $SignTool = Get-Content proof/signtool-path.txt | Select-Object -First 1
+          $CertificatePath = Join-Path $env:RUNNER_TEMP "windows-signing-cert.pfx"
+          foreach ($Path in Get-Content proof/signable-files.txt) {
+            & $SignTool sign `
+              /fd SHA256 `
+              /tr $env:WINDOWS_SIGNING_TIMESTAMP_URL `
+              /td SHA256 `
+              /f $CertificatePath `
+              /p $env:WINDOWS_CERTIFICATE_PASSWORD `
+              $Path
+          }
+
+      - name: Verify signed Windows content
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $SignTool = Get-Content proof/signtool-path.txt | Select-Object -First 1
+          foreach ($Path in Get-Content proof/signable-files.txt) {
+            "== $Path ==" | Tee-Object -FilePath proof/signtool-verify.txt -Append
+            & $SignTool verify /pa /v $Path 2>&1 |
+              Tee-Object -FilePath proof/signtool-verify.txt -Append
+            Get-AuthenticodeSignature $Path |
+              Format-List * |
+              Out-String |
+              Tee-Object -FilePath proof/authenticode-signatures.txt -Append
+          }
+
+      - name: Smoke test signed payload
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $BundleRoot = Join-Path $env:GITHUB_WORKSPACE "proof/work/$env:BUNDLE_NAME"
+          $SmokePython = Join-Path $BundleRoot "python/python.exe"
+          $SmokeTest = Join-Path $BundleRoot "smoke_test.py"
+          $Launcher = Join-Path $BundleRoot "launchers/tecpg.cmd"
+          Push-Location $env:RUNNER_TEMP
+          try {
+            & $SmokePython $SmokeTest $Launcher |
+              Tee-Object -FilePath "$env:GITHUB_WORKSPACE/proof/signed-payload-smoke.txt"
+          }
+          finally {
+            Pop-Location
+          }
+
+      - name: Repackage signed zip and regenerate checksum
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path proof/signed-artifact | Out-Null
+          $SignedZip = "proof/signed-artifact/$env:BUNDLE_NAME-signed.zip"
+          Compress-Archive `
+            -Path "proof/work/$env:BUNDLE_NAME" `
+            -DestinationPath $SignedZip `
+            -Force
+          $SignedHash = (Get-FileHash -Algorithm SHA256 $SignedZip).Hash.ToLowerInvariant()
+          "$SignedHash  $env:BUNDLE_NAME-signed.zip" |
+            Tee-Object -FilePath proof/signed-artifact/SHA256SUMS-signed.txt
+
+      - name: Defender scan signed artifact
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = "Continue"
+          $MpCmdRun = Join-Path $env:ProgramFiles "Windows Defender/MpCmdRun.exe"
+          if (!(Test-Path $MpCmdRun)) {
+            $MpCmdRun = Join-Path ${env:ProgramFiles(x86)} "Windows Defender/MpCmdRun.exe"
+          }
+          if (!(Test-Path $MpCmdRun)) {
+            "MpCmdRun.exe not found" | Tee-Object -FilePath proof/defender-signed-scan.txt
+            exit 0
+          }
+          foreach ($Target in @(
+            "proof/signed-artifact/$env:BUNDLE_NAME-signed.zip",
+            "proof/work/$env:BUNDLE_NAME"
+          )) {
+            "== $Target ==" | Tee-Object -FilePath proof/defender-signed-scan.txt -Append
+            & $MpCmdRun -Scan -ScanType 3 -File $Target 2>&1 |
+              Tee-Object -FilePath proof/defender-signed-scan.txt -Append
+          }
+
+      - name: Record SmartScreen boundary
+        if: ${{ inputs.dry_run == 'false' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          @(
+            "SmartScreen cannot be fully proven by this CI run alone.",
+            "Record browser-download and first-launch behavior on a clean Windows x64 machine or VM before claiming SmartScreen trust.",
+            "No public distribution readiness is claimed."
+          ) | Tee-Object -FilePath proof/smartscreen-boundary.txt
+
+      - name: Upload proof evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-signing-smartscreen-proof-evidence
+          path: proof/
+          if-no-files-found: error
