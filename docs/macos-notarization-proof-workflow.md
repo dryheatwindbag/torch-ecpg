@@ -22,6 +22,9 @@ public distribution readiness.
 Workflow file:
 `.github/workflows/macos-notarization-proof.yml`
 
+First dry-run evidence:
+[`docs/macos-notarization-proof-dry-run-evidence.md`](macos-notarization-proof-dry-run-evidence.md)
+
 Trigger:
 `workflow_dispatch`
 
