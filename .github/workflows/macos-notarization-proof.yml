@@ -1,0 +1,276 @@
+name: macOS Notarization Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: GitHub Actions run ID that produced the macOS CPU zip
+        required: true
+      source_artifact_name:
+        description: Source artifact name to download
+        required: true
+        default: tecpg-macos-arm64-cpu
+      bundle_name:
+        description: Top-level bundle directory and zip stem
+        required: true
+        default: tecpg-macos-arm64-cpu
+      expected_unsigned_sha256:
+        description: Optional expected SHA256 for the unsigned source zip
+        required: false
+      dry_run:
+        description: Inventory only; do not import secrets, sign, or notarize
+        required: true
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  macos-notarization-proof:
+    name: macOS notarization proof
+    runs-on: macos-14
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      SOURCE_ARTIFACT_NAME: ${{ inputs.source_artifact_name }}
+      BUNDLE_NAME: ${{ inputs.bundle_name }}
+      EXPECTED_UNSIGNED_SHA256: ${{ inputs.expected_unsigned_sha256 }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+      MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Confirm macOS arm64 runner
+        run: |
+          test "$(uname -m)" = "arm64"
+          sw_vers
+
+      - name: Download unsigned source artifact
+        run: |
+          set -euo pipefail
+          mkdir -p proof/unsigned-artifact
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$SOURCE_ARTIFACT_NAME" \
+            --dir proof/unsigned-artifact
+          find proof/unsigned-artifact -maxdepth 2 -type f -print
+
+      - name: Verify unsigned source checksum
+        run: |
+          set -euo pipefail
+          unsigned_zip="proof/unsigned-artifact/$BUNDLE_NAME.zip"
+          test -f "$unsigned_zip"
+          actual_hash="$(shasum -a 256 "$unsigned_zip" | awk '{print $1}')"
+          printf "%s  %s.zip\n" "$actual_hash" "$BUNDLE_NAME" \
+            | tee proof/unsigned-source-sha256.txt
+
+          if [ -n "$EXPECTED_UNSIGNED_SHA256" ]; then
+            test "$actual_hash" = "$EXPECTED_UNSIGNED_SHA256"
+          fi
+
+          checksum_file="proof/unsigned-artifact/SHA256SUMS.txt"
+          if [ -f "$checksum_file" ]; then
+            expected_hash="$(awk -v name="$BUNDLE_NAME.zip" '$2 == name {print $1}' "$checksum_file")"
+            test -n "$expected_hash"
+            test "$actual_hash" = "$expected_hash"
+          fi
+
+      - name: Extract unsigned source zip
+        run: |
+          set -euo pipefail
+          mkdir -p proof/work
+          ditto -x -k "proof/unsigned-artifact/$BUNDLE_NAME.zip" proof/work
+          test -d "proof/work/$BUNDLE_NAME"
+
+      - name: Inventory signable content
+        run: |
+          set -euo pipefail
+          bundle_root="proof/work/$BUNDLE_NAME"
+          : > proof/mach-o-files.txt
+          : > proof/executable-non-mach-o-files.txt
+
+          while IFS= read -r -d '' path; do
+            file_info="$(file -b "$path")"
+            case "$file_info" in
+              *Mach-O*)
+                printf "%s\n" "$path" >> proof/mach-o-files.txt
+                ;;
+              *)
+                if [ -x "$path" ]; then
+                  printf "%s\t%s\n" "$path" "$file_info" \
+                    >> proof/executable-non-mach-o-files.txt
+                fi
+                ;;
+            esac
+          done < <(find "$bundle_root" -type f -print0)
+
+          test -s proof/mach-o-files.txt
+          cat proof/mach-o-files.txt
+          cat proof/executable-non-mach-o-files.txt
+
+      - name: Stop before signing in dry run
+        if: ${{ inputs.dry_run == 'true' }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Dry run completed."
+            echo "No certificate was imported."
+            echo "No files were signed."
+            echo "No notarization request was submitted."
+          } | tee proof/dry-run-boundary.txt
+
+      - name: Import signing certificate
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          for secret_name in \
+            MACOS_CERTIFICATE_P12_BASE64 \
+            MACOS_CERTIFICATE_PASSWORD \
+            MACOS_KEYCHAIN_PASSWORD \
+            MACOS_CODESIGN_IDENTITY \
+            APPLE_ID \
+            APPLE_TEAM_ID \
+            APPLE_APP_SPECIFIC_PASSWORD
+          do
+            if [ -z "${!secret_name}" ]; then
+              echo "Missing required secret: $secret_name" >&2
+              exit 1
+            fi
+          done
+
+          cert_path="$RUNNER_TEMP/macos-signing-cert.p12"
+          keychain_path="$RUNNER_TEMP/macos-signing.keychain-db"
+
+          printf "%s" "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$cert_path"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$cert_path" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$keychain_path"
+          security list-keychains -d user -s "$keychain_path" login.keychain-db
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$MACOS_KEYCHAIN_PASSWORD" \
+            "$keychain_path"
+          security find-identity -v -p codesigning "$keychain_path" \
+            | tee proof/codesign-identities.txt
+
+      - name: Sign Mach-O content
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r path; do
+            codesign \
+              --force \
+              --timestamp \
+              --options runtime \
+              --sign "$MACOS_CODESIGN_IDENTITY" \
+              "$path"
+          done < proof/mach-o-files.txt
+
+      - name: Verify signed Mach-O content
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          : > proof/codesign-verify.txt
+          while IFS= read -r path; do
+            {
+              echo "== $path =="
+              codesign --verify --strict --verbose=4 "$path"
+              codesign --display --verbose=4 "$path"
+            } 2>&1 | tee -a proof/codesign-verify.txt
+          done < proof/mach-o-files.txt
+
+      - name: Smoke test signed payload
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          bundle_root="$GITHUB_WORKSPACE/proof/work/$BUNDLE_NAME"
+          smoke_python="$bundle_root/python/bin/python"
+          smoke_test="$bundle_root/smoke_test.py"
+          launcher="$bundle_root/launchers/tecpg"
+          cd "$RUNNER_TEMP"
+          "$smoke_python" "$smoke_test" "$launcher" \
+            | tee "$GITHUB_WORKSPACE/proof/signed-payload-smoke.txt"
+
+      - name: Repackage signed zip and regenerate checksum
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          mkdir -p proof/signed-artifact
+          (
+            cd proof/work
+            ditto -c -k --keepParent "$BUNDLE_NAME" \
+              "$GITHUB_WORKSPACE/proof/signed-artifact/$BUNDLE_NAME-signed.zip"
+          )
+          shasum -a 256 "proof/signed-artifact/$BUNDLE_NAME-signed.zip" \
+            | tee proof/signed-artifact/SHA256SUMS-signed.txt
+
+      - name: Submit signed zip for notarization
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          signed_zip="proof/signed-artifact/$BUNDLE_NAME-signed.zip"
+          xcrun notarytool submit "$signed_zip" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait \
+            --output-format json \
+            | tee proof/notarization-submit.json
+          request_id="$(jq -r '.id // empty' proof/notarization-submit.json)"
+          test -n "$request_id"
+          xcrun notarytool log "$request_id" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            | tee proof/notarization-log.json
+
+      - name: Record no-staple boundary for zip
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Final artifact shape: signed zip."
+            echo "Plain zip stapling is not claimed by this workflow."
+            echo "No pkg, dmg, or app bundle was created."
+          } | tee proof/no-staple-boundary.txt
+
+      - name: Assess signed launch paths
+        if: ${{ inputs.dry_run == 'false' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          bundle_root="proof/work/$BUNDLE_NAME"
+          {
+            echo "== launcher =="
+            spctl --assess --type execute --verbose=4 "$bundle_root/launchers/tecpg"
+            echo "== python executable =="
+            spctl --assess --type execute --verbose=4 "$bundle_root/python/bin/python"
+          } 2>&1 | tee proof/spctl-assess.txt
+
+      - name: Upload proof evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-notarization-proof-evidence
+          path: proof/
+          if-no-files-found: error
