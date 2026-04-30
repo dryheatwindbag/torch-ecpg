@@ -15,6 +15,9 @@ signing/notarization/quarantine success, Windows antivirus acceptance, GPU/CUDA
 support, scientific correctness, real-data execution, long-running workload
 behavior, macOS x64 / Intel support, or Linux desktop bundle support.
 
+Signing and notarization readiness plan:
+[`docs/cpu-bundle-signing-notarization-readiness-plan.md`](cpu-bundle-signing-notarization-readiness-plan.md)
+
 ## Source Evidence
 
 Current smoke artifact evidence exists for:
