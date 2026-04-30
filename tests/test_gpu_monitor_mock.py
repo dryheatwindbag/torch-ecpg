@@ -2,7 +2,12 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 import os
+import time
 from types import SimpleNamespace
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 
 def install_dependency_mocks(*, include_torch=False):
@@ -200,12 +205,6 @@ class TestGPUUUIDMatching(unittest.TestCase):
 
         # Should still select L4 because UUID (normalized) matches
         self.assertEqual(handle, handle_L4, "Should select L4 despite name mismatch, via UUID")
-
-if __name__ == '__main__':
-    unittest.main()
-import unittest
-from unittest.mock import MagicMock
-import time
 
 class TestThermalMonitorLifecycle(unittest.TestCase):
     def setUp(self):
