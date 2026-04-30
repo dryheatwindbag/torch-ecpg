@@ -23,6 +23,9 @@ distribution readiness.
 Workflow file:
 `.github/workflows/windows-signing-smartscreen-proof.yml`
 
+First dry-run failure evidence:
+[`docs/windows-signing-smartscreen-dry-run-failure.md`](windows-signing-smartscreen-dry-run-failure.md)
+
 Trigger:
 `workflow_dispatch`
 
