@@ -5,6 +5,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $PSNativeCommandUseErrorActionPreference = $true
+}
+
+$env:PYTHONUTF8 = "1"
+$env:PYTHONIOENCODING = "utf-8"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 $BuildRoot = Join-Path $RepoRoot "build/windows-cpu-bundle"
@@ -34,6 +40,10 @@ $PythonExe = Join-Path $PythonRoot "python.exe"
 & $PythonExe -m pip install --upgrade --index-url "https://download.pytorch.org/whl/cpu" --extra-index-url "https://pypi.org/simple" $TorchPackage
 & $PythonExe -m pip install -r (Join-Path $RepoRoot "requirements.txt")
 & $PythonExe -m pip install $RepoRoot
+
+$SitePackagesRoot = (Resolve-Path (Join-Path $PythonRoot "Lib/site-packages")).Path
+$SourcePackageRoot = (Resolve-Path (Join-Path $RepoRoot "tecpg")).Path
+& $PythonExe -c "import pathlib, sys, tecpg; p=pathlib.Path(tecpg.__file__).resolve(); site=pathlib.Path(sys.argv[1]).resolve(); source=pathlib.Path(sys.argv[2]).resolve(); print(p); raise SystemExit(0 if site in p.parents and source not in p.parents else 1)" $SitePackagesRoot $SourcePackageRoot
 & $PythonExe -c "import torch; print(torch.__version__, torch.cuda.is_available()); raise SystemExit(1 if torch.cuda.is_available() else 0)"
 
 $LauncherPath = Join-Path $LauncherRoot "tecpg.cmd"
@@ -61,9 +71,6 @@ downloaded wheel metadata and the project's release policy.
 New-Item -ItemType Directory -Force $UnpackRoot | Out-Null
 Compress-Archive -Path $BundleRoot -DestinationPath $ZipPath -Force
 Expand-Archive -Path $ZipPath -DestinationPath $UnpackRoot -Force
-
-$SmokePythonRoot = Join-Path $UnpackRoot "$BundleName/packaging-smoke/python"
-Copy-Item -Recurse -Force $PythonRoot $SmokePythonRoot
 
 $Hash = (Get-FileHash -Algorithm SHA256 $ZipPath).Hash.ToLowerInvariant()
 "$Hash  $BundleName.zip" | Set-Content -Encoding ASCII $ChecksumPath

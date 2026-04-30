@@ -21,6 +21,7 @@ HELP_COMMANDS = (
 
 def run_help_command(launcher: Path, args: tuple[str, ...]) -> None:
     command = [str(launcher), *args]
+    print(f"Running: {' '.join(command)}", flush=True)
     result = subprocess.run(
         command,
         check=False,
@@ -33,6 +34,7 @@ def run_help_command(launcher: Path, args: tuple[str, ...]) -> None:
         sys.stderr.write(result.stdout)
         sys.stderr.write(result.stderr)
         raise SystemExit(result.returncode)
+    print(f"Passed: {' '.join(command)}", flush=True)
 
 
 def parse_args() -> argparse.Namespace:
