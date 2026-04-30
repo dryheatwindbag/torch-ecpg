@@ -4,8 +4,13 @@ import sys
 import unittest
 import pandas as pd
 import numpy as np
-from scipy.stats import t
 
+try:
+    from scipy.stats import t
+except ModuleNotFoundError:
+    t = None
+
+@unittest.skipIf(t is None, "scipy is required to verify recalculated p-values")
 class TestRecalculatePValues(unittest.TestCase):
     def setUp(self):
         self.test_dir = 'tests/temp_test_recalc'
