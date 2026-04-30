@@ -2,6 +2,37 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 import os
+from types import SimpleNamespace
+
+
+def install_dependency_mocks(*, include_torch=False):
+    originals = {
+        'psutil': sys.modules.get('psutil'),
+        'colorama': sys.modules.get('colorama'),
+    }
+    if include_torch:
+        originals['torch'] = sys.modules.get('torch')
+
+    if originals['psutil'] is None:
+        sys.modules['psutil'] = MagicMock()
+    if originals['colorama'] is None:
+        sys.modules['colorama'] = SimpleNamespace(
+            Fore=SimpleNamespace(BLACK='', BLUE='', GREEN='', RED='', YELLOW=''),
+            Style=SimpleNamespace(RESET_ALL=''),
+        )
+    if include_torch and originals['torch'] is None:
+        sys.modules['torch'] = MagicMock()
+
+    return originals
+
+
+def restore_dependency_mocks(originals):
+    for module_name, original in originals.items():
+        if original is not None:
+            sys.modules[module_name] = original
+        elif module_name in sys.modules:
+            del sys.modules[module_name]
+
 
 class MockNVMLError(Exception):
     pass
@@ -12,6 +43,8 @@ class TestGPUUUIDMatching(unittest.TestCase):
         self.original_pynvml = sys.modules.get('pynvml')
         self.original_torch = sys.modules.get('torch')
         self.original_gpu_monitor = sys.modules.get('tecpg.gpu_monitor')
+        self.original_logger = sys.modules.get('tecpg.logger')
+        self.original_dependency_modules = install_dependency_mocks()
 
     def tearDown(self):
         # Restore original modules
@@ -29,6 +62,13 @@ class TestGPUUUIDMatching(unittest.TestCase):
             sys.modules['tecpg.gpu_monitor'] = self.original_gpu_monitor
         elif 'tecpg.gpu_monitor' in sys.modules:
             del sys.modules['tecpg.gpu_monitor']
+
+        if self.original_logger:
+            sys.modules['tecpg.logger'] = self.original_logger
+        elif 'tecpg.logger' in sys.modules:
+            del sys.modules['tecpg.logger']
+
+        restore_dependency_mocks(self.original_dependency_modules)
 
     def test_uuid_matching(self):
         # Create mocks
@@ -168,6 +208,24 @@ from unittest.mock import MagicMock
 import time
 
 class TestThermalMonitorLifecycle(unittest.TestCase):
+    def setUp(self):
+        self.original_gpu_monitor = sys.modules.get('tecpg.gpu_monitor')
+        self.original_logger = sys.modules.get('tecpg.logger')
+        self.original_dependency_modules = install_dependency_mocks(include_torch=True)
+
+    def tearDown(self):
+        if self.original_gpu_monitor:
+            sys.modules['tecpg.gpu_monitor'] = self.original_gpu_monitor
+        elif 'tecpg.gpu_monitor' in sys.modules:
+            del sys.modules['tecpg.gpu_monitor']
+
+        if self.original_logger:
+            sys.modules['tecpg.logger'] = self.original_logger
+        elif 'tecpg.logger' in sys.modules:
+            del sys.modules['tecpg.logger']
+
+        restore_dependency_mocks(self.original_dependency_modules)
+
     def test_thermal_monitor_lifecycle(self):
         from tecpg.logger import Logger
         import tecpg.gpu_monitor
