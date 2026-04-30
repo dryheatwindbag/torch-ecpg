@@ -11,7 +11,8 @@ the staged Windows x64 and macOS arm64 CPU bundle artifacts.
 
 This plan does not change workflows, packaging scripts, runtime
 implementation, Pearson lifecycle files, GPU/CUDA behavior, release automation,
-or draft release assets. It does not claim release readiness.
+or draft release assets. Installer formats are not implemented by this plan.
+It does not claim release readiness.
 
 ## Current Evidence Baseline
 
