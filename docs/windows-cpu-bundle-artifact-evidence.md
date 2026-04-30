@@ -15,6 +15,9 @@ This evidence does not claim release readiness, GPU/CUDA support, macOS bundle
 support, scientific correctness, real-data execution, signing/notarization, or
 public distribution readiness.
 
+Retention procedure:
+[`docs/windows-cpu-bundle-artifact-retention.md`](windows-cpu-bundle-artifact-retention.md)
+
 ## Workflow Run
 
 - Workflow: `Windows CPU Bundle`
