@@ -18,6 +18,9 @@ behavior, macOS x64 / Intel support, or Linux desktop bundle support.
 Signing and notarization readiness plan:
 [`docs/cpu-bundle-signing-notarization-readiness-plan.md`](cpu-bundle-signing-notarization-readiness-plan.md)
 
+Installer and packaging UX plan:
+[`docs/cpu-bundle-installer-packaging-ux-plan.md`](cpu-bundle-installer-packaging-ux-plan.md)
+
 ## Source Evidence
 
 Current smoke artifact evidence exists for:

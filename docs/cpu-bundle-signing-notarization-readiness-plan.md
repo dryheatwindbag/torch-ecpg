@@ -14,6 +14,9 @@ This plan does not sign binaries, notarize macOS artifacts, submit Windows
 artifacts for reputation checks, publish release downloads, change workflows,
 change packaging scripts, or claim release readiness.
 
+Installer and packaging UX plan:
+[`docs/cpu-bundle-installer-packaging-ux-plan.md`](cpu-bundle-installer-packaging-ux-plan.md)
+
 ## Current Evidence Baseline
 
 The current evidence chain proves:
