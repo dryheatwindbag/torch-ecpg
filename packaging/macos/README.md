@@ -19,6 +19,12 @@ Planned bundle requirements:
 - `packaging/common/smoke_test.py`.
 - `SHA256SUMS.txt` for each zip artifact.
 
+The manual GitHub Actions workflow is
+`.github/workflows/macos-arm64-cpu-bundle.yml`. It builds the arm64 bundle on a
+macOS runner, runs `packaging/common/smoke_test.py` against the unpacked
+launcher, generates `SHA256SUMS.txt`, and uploads the zip plus checksum
+artifacts.
+
 Required post-package smoke commands:
 
 ```sh
