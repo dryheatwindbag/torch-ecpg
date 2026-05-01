@@ -25,6 +25,9 @@ Workflow file:
 First dry-run evidence:
 [`docs/macos-notarization-proof-dry-run-evidence.md`](macos-notarization-proof-dry-run-evidence.md)
 
+Proof-mode evidence template:
+[`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
+
 Trigger:
 `workflow_dispatch`
 
