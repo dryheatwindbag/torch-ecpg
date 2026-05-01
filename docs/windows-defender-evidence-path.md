@@ -48,6 +48,9 @@ Expanded diagnostic dry-run evidence:
 Clean Windows validation plan:
 [`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
 
+Clean Windows evidence template:
+[`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
+
 ## Evidence Boundary
 
 Capturing Defender diagnostics does not prove Defender acceptance. A future

@@ -171,6 +171,9 @@ A follow-up evidence PR should include:
 - Help-command smoke output.
 - Explicit claims and non-claims reviewed against the boundary list.
 
+Use the evidence template when recording the follow-up PR:
+[`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
+
 Do not commit private machine identifiers, user account names, secrets, signing
 certificates, or unrelated local paths if they are not needed for evidence.
 
