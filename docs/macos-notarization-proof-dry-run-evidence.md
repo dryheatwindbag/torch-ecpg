@@ -153,3 +153,6 @@ using signing secrets.
 
 Proof-mode secret readiness:
 [`docs/macos-notarization-proof-mode-secret-readiness.md`](macos-notarization-proof-mode-secret-readiness.md)
+
+Proof-mode evidence template:
+[`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)

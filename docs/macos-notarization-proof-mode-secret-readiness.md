@@ -94,3 +94,6 @@ signing evidence.
 Configure the required macOS signing and notarization secret names in the
 repository or selected GitHub Actions environment. After configuration, rerun
 the secret-readiness check before dispatching proof mode with `dry_run: "false"`.
+
+Use the proof-mode evidence template when recording the follow-up evidence PR:
+[`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
