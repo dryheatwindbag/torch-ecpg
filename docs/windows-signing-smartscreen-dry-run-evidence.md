@@ -104,12 +104,19 @@ Both scan commands reported:
 CmdTool: Failed with hr = 0x80508023.
 ```
 
-This is not Defender acceptance evidence. A follow-up PR must either fix the
-Defender invocation for CI or move Defender evidence to a clean Windows x64
-machine or VM where scan output can be captured reliably.
+This is not Defender acceptance evidence. Follow-up evidence confirmed that the
+GitHub-hosted Windows runner is not suitable for Defender acceptance claims, so
+Defender and SmartScreen validation must move to a clean Windows x64 machine or
+VM where scan output and first-run prompts can be captured reliably.
 
 Expanded Defender diagnostic evidence:
 [`docs/windows-defender-diagnostics-dry-run-evidence.md`](windows-defender-diagnostics-dry-run-evidence.md)
+
+Clean Windows validation plan:
+[`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
+
+Clean Windows evidence template:
+[`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
 
 ## Dry-Run Boundary
 
@@ -158,6 +165,7 @@ this dry-run execution.
 
 ## Next Safe Action
 
-Fix or replace the Defender evidence path before running proof mode with Windows
-signing secrets. Do not claim Defender acceptance or SmartScreen trust from this
-dry-run evidence.
+Run the clean Windows x64 Defender and SmartScreen validation path and record an
+evidence PR using the template. If no clean Windows machine is available, keep
+Defender acceptance and SmartScreen trust parked. Do not claim Defender
+acceptance or SmartScreen trust from this dry-run evidence.
