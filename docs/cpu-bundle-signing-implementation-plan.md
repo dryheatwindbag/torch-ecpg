@@ -2,7 +2,7 @@
 
 Repository: `dryheatwindbag/torch-ecpg`
 
-Current `dev` commit: `6b54f62a32cd7e46e5004f0507b3495e10088d45`
+Current `dev` commit: `dc179e1c26e480991b3227b95897acc0cdba90b6`
 
 Classification: docs / decision / signing scaffold / release-readiness planning
 
@@ -14,8 +14,14 @@ approach for the already-proven Windows x64 and macOS arm64 CPU zip artifacts.
 macOS notarization proof workflow:
 [`docs/macos-notarization-proof-workflow.md`](macos-notarization-proof-workflow.md)
 
+macOS proof-mode evidence template:
+[`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
+
 Windows signing and SmartScreen proof workflow:
 [`docs/windows-signing-smartscreen-proof-workflow.md`](windows-signing-smartscreen-proof-workflow.md)
+
+Windows clean-machine evidence template:
+[`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
 
 This plan does not implement signing, notarization, installers, release
 automation, artifact generation, packaging format changes, runtime behavior
@@ -32,11 +38,28 @@ The repository has evidence for:
   upload/download.
 - Draft prerelease staging for evidence only.
 - Installer and packaging UX decision gates.
+- macOS notarization proof workflow dry-run evidence.
+- Windows signing SmartScreen proof workflow dry-run evidence.
+- macOS proof-mode secret-readiness recheck.
+- Windows clean-machine Defender and SmartScreen validation plan.
 
 The current evidence does not prove signing, notarization, quarantine behavior,
 Windows SmartScreen trust, antivirus acceptance, release readiness, public
 distribution readiness, scientific correctness, real-data execution, or
 performance.
+
+## Current Blockers
+
+macOS proof mode must remain parked until the required Apple signing and
+notarization secret names are configured and a secret-readiness recheck passes:
+[`docs/macos-notarization-proof-mode-secret-readiness-recheck.md`](macos-notarization-proof-mode-secret-readiness-recheck.md)
+
+Windows Defender acceptance and SmartScreen trust must remain parked until the
+clean Windows x64 validation path is run on a real clean VM or physical machine:
+[`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
+
+Do not run proof mode, claim signing success, or claim trust readiness merely
+because this plan exists.
 
 ## Signed Zip Direction
 
@@ -323,11 +346,15 @@ Do not claim Windows trust until a Windows evidence PR records:
 
 ## Next Safe Action After This Plan
 
-After this plan merges, implement one platform proof only:
+After this plan and the proof scaffolds have merged, proceed only when one of
+the external prerequisites exists:
 
-- macOS notarization proof, or
-- Windows signing plus SmartScreen observation.
+- macOS: configure the required Apple signing and notarization secret names,
+  rerun secret readiness, and then dispatch one proof-mode evidence run.
+- Windows: run the clean Windows x64 Defender and SmartScreen validation path
+  on a real clean VM or physical machine and record one evidence PR.
 
-Do not implement both platform proofs at once. Do not build pkg, dmg, MSI, or
-EXE installers before signing evidence exists and a separate packaging-format
+If neither prerequisite exists, keep the signed-zip trust path parked. Do not
+implement both platform proofs at once. Do not build pkg, dmg, MSI, or EXE
+installers before signing evidence exists and a separate packaging-format
 decision gate approves that change.
