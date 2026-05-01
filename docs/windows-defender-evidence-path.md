@@ -45,6 +45,9 @@ artifact scan targets in proof mode.
 Expanded diagnostic dry-run evidence:
 [`docs/windows-defender-diagnostics-dry-run-evidence.md`](windows-defender-diagnostics-dry-run-evidence.md)
 
+Clean Windows validation plan:
+[`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
+
 ## Evidence Boundary
 
 Capturing Defender diagnostics does not prove Defender acceptance. A future

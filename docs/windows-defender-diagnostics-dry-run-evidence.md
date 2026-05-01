@@ -164,3 +164,6 @@ Park CI-based Defender acceptance and move Defender evidence to a clean Windows
 x64 VM or physical machine. Keep the GitHub workflow for artifact download,
 checksum, extraction, inventory, and diagnostic evidence, but do not use it to
 claim Defender acceptance.
+
+Clean Windows validation plan:
+[`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
