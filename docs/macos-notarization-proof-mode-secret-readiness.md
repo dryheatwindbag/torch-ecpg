@@ -97,3 +97,6 @@ the secret-readiness check before dispatching proof mode with `dry_run: "false"`
 
 Use the proof-mode evidence template when recording the follow-up evidence PR:
 [`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
+
+Latest secret-readiness recheck:
+[`docs/macos-notarization-proof-mode-secret-readiness-recheck.md`](macos-notarization-proof-mode-secret-readiness-recheck.md)
