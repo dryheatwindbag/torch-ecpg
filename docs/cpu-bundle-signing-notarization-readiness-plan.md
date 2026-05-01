@@ -2,7 +2,7 @@
 
 Repository: `dryheatwindbag/torch-ecpg`
 
-Current `dev` commit: `b49fd8705b6c229b531fa29fcf1ebb35828c6e62`
+Current `dev` commit: `dc179e1c26e480991b3227b95897acc0cdba90b6`
 
 Classification: docs / packaging readiness / signing and notarization plan
 
@@ -17,6 +17,12 @@ change packaging scripts, or claim release readiness.
 Installer and packaging UX plan:
 [`docs/cpu-bundle-installer-packaging-ux-plan.md`](cpu-bundle-installer-packaging-ux-plan.md)
 
+Signed-zip implementation plan:
+[`docs/cpu-bundle-signing-implementation-plan.md`](cpu-bundle-signing-implementation-plan.md)
+
+Public distribution risk plan:
+[`docs/cpu-bundle-public-distribution-risk-plan.md`](cpu-bundle-public-distribution-risk-plan.md)
+
 ## Current Evidence Baseline
 
 The current evidence chain proves:
@@ -29,6 +35,22 @@ The current evidence chain proves:
 This evidence chain does not prove signing, notarization, quarantine behavior,
 Windows SmartScreen trust, antivirus acceptance, public distribution readiness,
 GPU/CUDA support, scientific correctness, real-data execution, or performance.
+
+## Current Blockers
+
+macOS proof mode is blocked on required Apple signing and notarization secret
+configuration:
+[`docs/macos-notarization-proof-mode-secret-readiness-recheck.md`](macos-notarization-proof-mode-secret-readiness-recheck.md)
+
+Use the macOS proof-mode evidence template after those secrets are configured:
+[`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
+
+Windows Defender acceptance and SmartScreen trust are blocked on clean Windows
+x64 VM or physical-machine validation:
+[`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
+
+Use the Windows clean-machine evidence template when recording that validation:
+[`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
 
 ## macOS Signing Gate
 
@@ -164,7 +186,9 @@ gate approves workflow or packaging changes.
 
 ## Next Safest Action
 
-Start with macOS signing evidence if the priority is public macOS distribution.
-Start with Windows signing evidence if the priority is public Windows
-distribution. Do not publish release downloads until the relevant platform
-gates have passed and are recorded.
+Start with macOS proof-mode evidence only after the required Apple signing and
+notarization secrets are configured and secret readiness is rechecked. Start
+with Windows trust evidence only after a clean Windows x64 validation machine is
+available. If neither prerequisite exists, keep public distribution readiness
+parked. Do not publish release downloads until the relevant platform gates have
+passed and are recorded.
