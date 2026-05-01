@@ -2,7 +2,7 @@
 
 Repository: `dryheatwindbag/torch-ecpg`
 
-Current `dev` commit: `9622ac49ab26456139fca5c94374cc0e820fc4a5`
+Current `dev` commit: `13f236fc7e2afe82e5201b3cbcfbae33778c3e31`
 
 Classification: docs / packaging risk / public distribution readiness plan
 
@@ -17,6 +17,9 @@ behavior, macOS x64 / Intel support, or Linux desktop bundle support.
 
 Signing and notarization readiness plan:
 [`docs/cpu-bundle-signing-notarization-readiness-plan.md`](cpu-bundle-signing-notarization-readiness-plan.md)
+
+Signed-zip implementation plan:
+[`docs/cpu-bundle-signing-implementation-plan.md`](cpu-bundle-signing-implementation-plan.md)
 
 Installer and packaging UX plan:
 [`docs/cpu-bundle-installer-packaging-ux-plan.md`](cpu-bundle-installer-packaging-ux-plan.md)
@@ -36,6 +39,26 @@ Current smoke artifact evidence exists for:
 
 Those documents prove smoke-tested CPU bundle artifacts only. They do not prove
 public distribution readiness.
+
+## Current Blockers
+
+The short-term packaging direction is signed zip. Installer formats remain out
+of scope until a format-specific evidence PR approves a change.
+
+macOS proof mode is currently blocked on repository secret configuration:
+
+- Secret-readiness recheck:
+  [`docs/macos-notarization-proof-mode-secret-readiness-recheck.md`](macos-notarization-proof-mode-secret-readiness-recheck.md)
+- Proof-mode evidence template:
+  [`docs/macos-notarization-proof-evidence-template.md`](macos-notarization-proof-evidence-template.md)
+
+Windows Defender and SmartScreen trust are currently blocked on clean Windows
+x64 machine or VM validation:
+
+- Clean Windows validation plan:
+  [`docs/windows-clean-vm-defender-smartscreen-validation-plan.md`](windows-clean-vm-defender-smartscreen-validation-plan.md)
+- Clean Windows evidence template:
+  [`docs/windows-clean-vm-defender-smartscreen-evidence-template.md`](windows-clean-vm-defender-smartscreen-evidence-template.md)
 
 ## macOS Signing And Notarization Gate
 
@@ -138,17 +161,20 @@ A public-distribution readiness PR should include or link:
 
 ## Next Safest Options
 
-Option A: choose the durable storage target and execute the retention handoff
-for the existing Windows x64 and macOS arm64 CPU artifacts.
+Option A: configure the required macOS signing and notarization secret names,
+rerun secret readiness, and only then dispatch macOS proof mode with
+`dry_run: "false"`.
 
-Option B: create a signing/notarization validation branch for macOS arm64 only,
-because macOS quarantine and notarization are likely to block public downloads.
+Option B: run the clean Windows x64 Defender and SmartScreen validation path on
+a real clean VM or physical machine and record an evidence PR.
 
-Option C: create a Windows signing and antivirus validation branch for Windows
-x64 only.
+Option C: keep both platform trust paths parked until the missing external
+resources exist.
 
 Recommended next step:
 
-- Option A first if the immediate goal is reliable internal download handoff.
-- Option B first if public macOS distribution is the priority.
-- Option C first if public Windows distribution is the priority.
+- Option A first if public macOS distribution is the priority and Apple signing
+  credentials are available.
+- Option B first if public Windows distribution is the priority and a clean
+  Windows validation machine is available.
+- Option C if neither external prerequisite is available.
